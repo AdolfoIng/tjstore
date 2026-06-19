@@ -1,0 +1,89 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { BrandService } from '@/services/brand.service'
+import type { Brand } from '@/types/brand'
+
+export const useBrandStore = defineStore('brand', () => {
+    const brands = ref<Brand[]>([])
+    const loading = ref(false)
+    const error = ref<string | null>(null)
+
+    async function loadBrands() {
+        loading.value = true
+        error.value = null
+
+        try {
+            brands.value = await BrandService.getAll()
+        } catch (err) {
+            error.value = (err as Error)?.message ?? 'Error loading brands'
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function addBrand(name: string) {
+        loading.value = true
+        error.value = null
+
+        try {
+            await BrandService.create(name)
+            await loadBrands()
+        } catch (err) {
+            error.value = (err as Error)?.message ?? 'Error adding brand'
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function updateBrand(id: number, name: string) {
+        loading.value = true
+        error.value = null
+
+        try {
+            await BrandService.update(id, name)
+            await loadBrands()
+        } catch (err) {
+            error.value = (err as Error)?.message ?? 'Error updating brand'
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function deleteBrand(id: number) {
+        loading.value = true
+        error.value = null
+
+        try {
+            await BrandService.deleteBrand(id)
+            await loadBrands()
+        } catch (err) {
+            error.value = (err as Error)?.message ?? 'Error deleting brand'
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function searchBrands(query: string) {
+        loading.value = true
+        error.value = null
+
+        try {
+            brands.value = await BrandService.searchBrand(query)
+        } catch (err) {
+            error.value = (err as Error)?.message ?? 'Error searching brands'
+        } finally {
+            loading.value = false
+        }
+    }
+
+    return {
+        brands,
+        loading,
+        error,
+        loadBrands,
+        addBrand,
+        updateBrand,
+        deleteBrand,
+        searchBrands
+    }
+})
