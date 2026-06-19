@@ -49,7 +49,7 @@ function searchBrands(e: Event) {
         brandStore.loadBrands()
         return
     }
-    console.log(query.trim());
+    console.log('valor:', query.trim());
     brandStore.searchBrands(query.trim());
 
     // Agrega un pequeño retraso para evitar búsquedas excesivas
