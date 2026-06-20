@@ -1,88 +1,99 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { useBrandStore } from '@/stores/brand.store'
+import { useDebounce } from '@/composables/useDebounce'
 import type { Brand } from '@/types/brand'
+import BrandModal from '@/components/brands/BrandModal.vue'
 
+// ============== State ==============
 const brandStore = useBrandStore()
-const name = ref('')
+const isModalOpen = ref(false)
 const editingBrand = ref<Brand | null>(null)
 
-onMounted(() => {
-    brandStore.loadBrands()
-})
-
-function startEdit(brand: Brand) {
-    editingBrand.value = { ...brand }
-    name.value = brand.nombre
-}
-
-function cancelEdit() {
-    editingBrand.value = null
-    name.value = ''
-}
-
-async function submitForm() {
-    if (!name.value.trim()) {
-        return
-    }
-
-    if (editingBrand.value) {
-        await brandStore.updateBrand(editingBrand.value.id, name.value.trim())
-    } else {
-        await brandStore.addBrand(name.value.trim())
-    }
-
-    cancelEdit()
-}
-
-function removeBrand(id: number) {
-    if (window.confirm('¿Eliminar esta marca?')) {
-        brandStore.deleteBrand(id)
-    }
-}
-
-function searchBrands(e: Event) {
-    const query = (e.target as HTMLInputElement).value
-    //brandStore.searchBrands(query)
-
+// ============== Debounce Search ==============
+const handleSearch = (query: string) => {
     if (query.trim() === '' || query.length < 2) {
         brandStore.loadBrands()
         return
     }
-    console.log('valor:', query.trim());
-    brandStore.searchBrands(query.trim());
+    brandStore.searchBrands(query.trim())
+}
 
-    // Agrega un pequeño retraso para evitar búsquedas excesivas
+const [debouncedSearch] = useDebounce(handleSearch, 300)
+
+// ============== Lifecycle ==============
+onMounted(() => {
+    brandStore.loadBrands()
+})
+
+// ============== Modal Handlers ==============
+/**
+ * Abre el modal en modo edición
+ */
+function startEdit(brand: Brand): void {
+    editingBrand.value = { ...brand }
+    isModalOpen.value = true
+}
+
+/**
+ * Abre el modal en modo crear
+ */
+function openCreateModal(): void {
+    editingBrand.value = null
+    isModalOpen.value = true
+}
+
+/**
+ * Cierra el modal y limpia el estado
+ */
+function closeModal(): void {
+    isModalOpen.value = false
+    editingBrand.value = null
+}
+
+/**
+ * Maneja el guardado: crea o actualiza según el modo
+ */
+async function handleSave(brandName: string, brandId?: number): Promise<void> {
+    if (brandId) {
+        // Modo edición
+        await brandStore.updateBrand(brandId, brandName)
+    } else {
+        // Modo creación
+        await brandStore.addBrand(brandName)
+    }
+    closeModal()
+}
+
+/**
+ * Elimina una marca con confirmación
+ */
+function removeBrand(id: number): void {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta marca?')) {
+        brandStore.deleteBrand(id)
+    }
 }
 </script>
 
 <template>
     <div class="brand-page container">
+        <!-- Search Section -->
+        <section class="section-search">
+            <div>
+                <label for="search-input" class="search-label">Buscar marcas:</label>
+                <input id="search-input" type="text" placeholder="Buscar por nombre..."
+                    @input="(e) => debouncedSearch((e.target as HTMLInputElement).value)" />
+            </div>
 
-
-        <section class="brand-form card">
-            <form @submit.prevent="submitForm" class="form-row">
-                <input id="brand-name" type="text" v-model="name" placeholder="Escribe el nombre de la marca"
-                    :disabled="brandStore.loading" />
-
-                <div class="button-group">
-                    <button type="submit" class="primary" :disabled="brandStore.loading || !name.trim()">
-                        {{ editingBrand ? 'Actualizar' : 'Agregar' }}
-                    </button>
-                    <button type="button" class="secondary" @click="cancelEdit" v-if="editingBrand">
-                        Cancelar
-                    </button>
-                </div>
-            </form>
-
-            <p v-if="brandStore.error" class="error-message">{{ brandStore.error }}</p>
+            <div class="actions-bar">
+                <button class="btn btn-primary" @click="openCreateModal">
+                    <span class="btn-icon">+</span>
+                    <span class="btn-text">Agregar Marca</span>
+                </button>
+            </div>
         </section>
 
-        <section class="brand-search">
-            <h2>Buscar Marcas:</h2>
-            <input type="text" placeholder="Buscar por nombre..." @input="(e) => searchBrands(e)" />
-        </section>
-
+        <!-- Brands Table Section -->
         <section class="brand-table card">
             <div class="table-status">
                 <span v-if="brandStore.loading">Cargando marcas...</span>
@@ -103,10 +114,22 @@ function searchBrands(e: Event) {
                         <tr v-for="brand in brandStore.brands" :key="brand.id">
                             <td>{{ brand.id }}</td>
                             <td>{{ brand.nombre }}</td>
-                            <td>{{ brand.created_at ? new Date(brand.created_at).toLocaleDateString() : '-' }}</td>
+                            <td>
+                                {{
+                                    brand.created_at
+                                        ? new Date(brand.created_at).toLocaleDateString()
+                                        : '-'
+                                }}
+                            </td>
                             <td class="actions">
-                                <button type="button" class="edit" @click="startEdit(brand)">Editar</button>
-                                <button type="button" class="delete" @click="removeBrand(brand.id)">Eliminar</button>
+                                <button type="button" class="edit" @click="startEdit(brand)"
+                                    :disabled="brandStore.loading">
+                                    Editar
+                                </button>
+                                <button type="button" class="delete" @click="removeBrand(brand.id)"
+                                    :disabled="brandStore.loading">
+                                    Eliminar
+                                </button>
                             </td>
                         </tr>
                         <tr v-if="!brandStore.loading && brandStore.brands.length === 0">
@@ -116,6 +139,10 @@ function searchBrands(e: Event) {
                 </table>
             </div>
         </section>
+
+        <!-- Brand Modal -->
+        <BrandModal :is-open="isModalOpen" :brand="editingBrand" :is-loading="brandStore.loading" @close="closeModal"
+            @save="handleSave" />
     </div>
 </template>
 
@@ -130,6 +157,16 @@ function searchBrands(e: Event) {
     padding-top: 2rem;
     margin-top: 1rem;
     font-family: 'Courier New', Courier, monospace;
+}
+
+.section-search {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    /* flex-wrap: wrap; */
 }
 
 .brand-form,
