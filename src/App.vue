@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import BrandView from './views/BrandView.vue'
+//import BrandView from './views/BrandView.vue';
+import DashboardView from './views/DashboardView.vue';
 </script>
 
 <template>
-  <BrandView />
+  <DashboardView />
 </template>
 
 <style scoped></style>
