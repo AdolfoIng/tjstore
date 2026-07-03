@@ -1,26 +1,113 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { Eye, Pencil, Trash2 } from '@/lib/icons';
+import { useProductStore } from '@/stores/product.store';
+import AlertService from '@/services/sweetalert2/alert.service';
+import ModalProduct from '@/components/products/ModalProduct.vue';
+import type { Product, ProductForm } from '@/types/product';
 
+// ============== State ==============
+const productStore = useProductStore();
+const isModalOpen = ref(false)
+const editingProduct = ref<Product | null>(null)
+const searchQuery = ref('')
 
-const products = ref([
-    { id: 1, nombre: 'Producto A', precio: 10.99 },
-    { id: 2, nombre: 'Producto B', precio: 15.49 },
-    { id: 3, nombre: 'Producto C', precio: 7.25 },
-])
+// ============== Lifecycle ==============
+onMounted(() => {
+    productStore.loadProductos();
+});
 
+// ============== Computed & Filtered ==============
+const filteredProducts = () => {
+    if (!searchQuery.value.trim()) {
+        return productStore.products
+    }
+    const query = searchQuery.value.toLowerCase()
+    return productStore.products.filter(p =>
+        p.nombre.toLowerCase().includes(query) ||
+        p.descripcion.toLowerCase().includes(query) ||
+        p.marcas?.nombre.toLowerCase().includes(query)
+    )
+}
+
+// ============== Methods ==============
+async function deleteProduct(product: Product): Promise<void> {
+    const confirmed = await AlertService.confirm(
+        "Eliminar Producto",
+        `¿Está seguro que desea eliminar "${product.nombre}"? Esta acción no se puede deshacer.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await productStore.desactiveProduct(product.id);
+        AlertService.toastSuccess("Producto eliminado correctamente");
+    } catch (err) {
+        AlertService.toastError("Error al eliminar el producto");
+        console.error(err);
+    }
+}
+
+/**
+ * Abre el modal en modo crear
+ */
+function openCreateModal(): void {
+    editingProduct.value = null
+    isModalOpen.value = true
+}
+
+/**
+ * Abre el modal en modo editar
+ */
+function openEditModal(product: Product): void {
+    editingProduct.value = product
+    isModalOpen.value = true
+}
+
+function closeModal(): void {
+    isModalOpen.value = false
+    editingProduct.value = null
+}
+
+/**
+ * Maneja el guardar de un producto (crear o actualizar)
+ */
+async function handleSaveProduct(productForm: ProductForm): Promise<void> {
+    try {
+        if (editingProduct.value) {
+            // Modo editar
+            await productStore.updateProduct(editingProduct.value.id, productForm)
+            AlertService.toastSuccess("Producto actualizado correctamente");
+        } else {
+            // Modo crear
+            await productStore.createProduct(productForm)
+            //console.log(productForm);
+            AlertService.toastSuccess("Producto creado correctamente");
+        }
+        closeModal()
+    } catch (err) {
+        AlertService.toastError(
+            editingProduct.value
+                ? "Error al actualizar el producto"
+                : "Error al crear el producto"
+        );
+        console.error(err);
+    }
+}
 </script>
 
 <template>
     <div class="products-container">
         <!-- Search Section -->
         <section class="section-search">
-            <div>
+            <div class="search-wrapper">
                 <label for="search-input" class="search-label">Buscar productos:</label>
-                <input id="search-input" type="text" placeholder="Buscar por nombre..." />
+                <input id="search-input" v-model="searchQuery" type="text"
+                    placeholder="Buscar por nombre, descripción o marca..." class="search-input" />
             </div>
 
             <div class="actions-bar">
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" @click="openCreateModal">
                     <span class="btn-icon">+</span>
                     <span class="btn-text">Agregar Producto</span>
                 </button>
@@ -30,33 +117,44 @@ const products = ref([
         <!-- Product Table Section -->
         <section class="section-table card">
             <div class="table-status">
-                <!-- <span>Cargando productos...</span> -->
+                <span v-if="productStore.loading" class="loading-text">Cargando productos...</span>
+                <span v-else-if="filteredProducts().length === 0" class="empty-text">
+                    No hay productos disponibles
+                </span>
             </div>
 
-            <div class="table-responsive">
+            <div v-if="!productStore.loading && filteredProducts().length > 0" class="table-responsive">
                 <table>
                     <thead>
                         <tr>
                             <th>N°</th>
                             <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Marca</th>
                             <th>Precio</th>
                             <th class="actions">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="product in products" :key="product.id">
-                            <td>{{ product.id }}</td>
+                        <tr v-for="(product, index) in filteredProducts()" :key="product.id">
+                            <td class="text-center">{{ index + 1 }}</td>
                             <td>{{ product.nombre }}</td>
-                            <td>${{ product.precio.toFixed(2) }}</td>
+                            <td class="text-truncate" :title="product.descripcion">
+                                {{ product.descripcion }}
+                            </td>
+                            <td>{{ product.marcas?.nombre ?? 'N/A' }}</td>
+                            <td class="text-right">${{ product.precio_venta.toFixed(2) }}</td>
                             <td class="actions">
-                                <button type="button" class="view-stock">
-                                    Ver Stock
+                                <button type="button" class="action-btn view-stock" title="Ver Stock">
+                                    <Eye class="icon" />
                                 </button>
-                                <button type="button" class="edit">
-                                    Editar
+                                <button type="button" class="action-btn edit" title="Editar"
+                                    @click="openEditModal(product)">
+                                    <Pencil class="icon" />
                                 </button>
-                                <button type="button" class="delete">
-                                    Eliminar
+                                <button type="button" class="action-btn delete" title="Eliminar"
+                                    @click="deleteProduct(product)">
+                                    <Trash2 class="icon" />
                                 </button>
                             </td>
                         </tr>
@@ -64,9 +162,12 @@ const products = ref([
                 </table>
             </div>
         </section>
+
+        <!-- Modal Product -->
+        <ModalProduct :is-open="isModalOpen" :product="editingProduct" :is-loading="productStore.loading"
+            @close="closeModal" @save="handleSaveProduct" />
     </div>
 </template>
-
 
 <style scoped>
 .products-container {
@@ -83,22 +184,92 @@ const products = ref([
     gap: 1rem;
 }
 
-.btn-primary {
+.search-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
 
-    background: #3ECF8E;
-    color: white;
+.search-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #8b949e;
+}
+
+.search-input {
+    padding: 0.75rem 1rem;
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.actions-bar {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
     border: none;
-    padding: .7rem 1rem;
     border-radius: 8px;
     cursor: pointer;
-    transition: .2s;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: #3ecf8e;
+    color: white;
 }
 
 .btn-primary:hover {
     background: #2fbf7e;
+    box-shadow: 0 4px 12px rgba(62, 207, 142, 0.3);
+}
+
+.btn-icon {
+    font-size: 1.1rem;
+    font-weight: bold;
 }
 
 /* Table Styles */
+.section-table {
+    border-radius: 8px;
+    background: var(--surface, #0f172a);
+    overflow: hidden;
+}
+
+.table-status {
+    padding: 2rem;
+    text-align: center;
+    color: #8b949e;
+}
+
+.loading-text {
+    display: inline-block;
+}
+
+.empty-text {
+    display: inline-block;
+    color: #8b949e;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
 
 table {
     width: 100%;
@@ -108,18 +279,123 @@ table {
 
 thead {
     background: #21262d;
+    position: sticky;
+    top: 0;
 }
 
 th {
+    padding: 1rem;
     color: #8b949e;
     font-weight: 600;
+    text-align: left;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-tr {
-    border-bottom: 1px solid var(--border);
+td {
+    padding: 1rem;
+    border-bottom: 1px solid #30363d;
+    color: #c9d1d9;
 }
 
 tbody tr:hover {
-    background: #3d4046;
+    background: #0d1219;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-truncate {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Action Buttons */
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    text-align: center;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: #8b949e;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: #30363d;
+}
+
+.action-btn.view-stock:hover {
+    color: #3b82f6;
+}
+
+.action-btn.edit:hover {
+    color: #3ecf8e;
+}
+
+.action-btn.delete:hover {
+    color: #ef4444;
+}
+
+.icon {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
+.card {
+    border: 1px solid #30363d;
+}
+
+@media (max-width: 768px) {
+    .section-search {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-wrapper {
+        order: 1;
+    }
+
+    .actions-bar {
+        order: 2;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    th,
+    td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+    }
 }
 </style>

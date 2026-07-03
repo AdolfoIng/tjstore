@@ -35,7 +35,7 @@ import type router from '@/router';
 }
 
 .sidebar {
-    width: 230px;
+    width: 180px;
     background-color: #323232;
     color: #ffffff;
     padding: 1rem;

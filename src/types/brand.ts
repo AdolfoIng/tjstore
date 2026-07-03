@@ -1,5 +1,5 @@
 export interface Brand {
-    id: number
+    id: string
     nombre: string
     created_at?: string
 }
