@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref, computed, watch } from 'vue'
 import { BrandListService } from '@/services/brandList.service'
+import { CategoryListService } from '@/services/category.service'
 import AlertService from '@/services/sweetalert2/alert.service'
 import type { Product, ProductForm } from '@/types/product'
-import type { Brand } from '@/types/brand'
+import type { Brand } from '@/types/brand';
+import type { Categoria } from '@/types/categoria';
 
 interface Props {
     isOpen: boolean
@@ -25,10 +27,15 @@ const props = withDefaults(defineProps<Props>(), {
 // ============ State ============
 const brands = ref<Brand[]>([])
 const brandsLoading = ref(false)
+
+const categorias = ref<Categoria[]>([])
+const categoriasLoading = ref(false)
+
 const form = reactive<ProductForm>({
     nombre: '',
     descripcion: '',
     precio_venta: 0,
+    categoria_id: null,
     marca_id: null
 })
 
@@ -36,6 +43,7 @@ const errors = reactive({
     nombre: '',
     descripcion: '',
     precio_venta: '',
+    categoria_id: '',
     marca_id: ''
 })
 
@@ -53,6 +61,7 @@ watch(() => props.isOpen, (newVal) => {
             resetForm()
         }
         loadBrands()
+        loadCategories()
     }
 })
 
@@ -69,10 +78,23 @@ async function loadBrands(): Promise<void> {
     }
 }
 
+async function loadCategories(): Promise<void> {
+    categoriasLoading.value = true
+    try {
+        categorias.value = await CategoryListService.getAllCategorias()
+    } catch (err) {
+        AlertService.toastError('Error al cargar categorias')
+        console.error(err)
+    } finally {
+        categoriasLoading.value = false
+    }
+}
+
 function loadFormData(product: Product): void {
     form.nombre = product.nombre
     form.descripcion = product.descripcion
     form.precio_venta = product.precio_venta
+    form.categoria_id = product.categoria_id
     form.marca_id = product.marca_id
 }
 
@@ -80,6 +102,7 @@ function resetForm(): void {
     form.nombre = ''
     form.descripcion = ''
     form.precio_venta = 0
+    form.categoria_id = null
     form.marca_id = null
     clearErrors()
 }
@@ -88,6 +111,7 @@ function clearErrors(): void {
     errors.nombre = ''
     errors.descripcion = ''
     errors.precio_venta = ''
+    errors.categoria_id = ''
     errors.marca_id = ''
 }
 
@@ -145,6 +169,7 @@ function handleClose(): void {
 onMounted(() => {
     if (props.isOpen) {
         loadBrands()
+        loadCategories()
     }
 })
 </script>
@@ -197,11 +222,27 @@ onMounted(() => {
                             {{ brandsLoading ? 'Cargando marcas...' : 'Selecciona una marca' }}
                         </option>
                         <option v-for="brand in brands" :key="brand.id" :value="brand.id">
-                            {{ brand.id }}
                             {{ brand.nombre }}
                         </option>
                     </select>
                     <p v-if="errors.marca_id" class="error-message">{{ errors.marca_id }}</p>
+
+                    <!-- Categoria -->
+                    <label for="product-category" class="form-label">
+                        Categoria
+                        <span class="required" aria-label="requerido">*</span>
+                    </label>
+                    <select id="product-category" v-model="form.categoria_id" class="form-input form-select"
+                        :class="{ 'form-input--error': errors.categoria_id }"
+                        :disabled="isLoading || categoriasLoading">
+                        <option :value="null">
+                            {{ categoriasLoading ? 'Cargando categorias...' : 'Selecciona una categoria' }}
+                        </option>
+                        <option v-for="category in categorias" :key="category.id" :value="category.id">
+                            {{ category.nombre }}
+                        </option>
+                    </select>
+                    <p v-if="errors.categoria_id" class="error-message">{{ errors.categoria_id }}</p>
 
                     <!-- Precio -->
                     <label for="product-price" class="form-label">

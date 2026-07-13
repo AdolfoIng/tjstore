@@ -1,39 +1,38 @@
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { Eye, Pencil, Trash2 } from '@/lib/icons';
 import { useProductStore } from '@/stores/product.store';
 import AlertService from '@/services/sweetalert2/alert.service';
 import ModalProduct from '@/components/products/ModalProduct.vue';
+import ProductPagination from '@/components/products/ProductPagination.vue';
+import { useDebounce } from '@/composables/useDebounce';
 import type { Product, ProductForm } from '@/types/product';
 
-// ============== State ==============
 const productStore = useProductStore();
 const isModalOpen = ref(false)
 const editingProduct = ref<Product | null>(null)
 const searchQuery = ref('')
 
-// ============== Lifecycle ==============
+const [debouncedLoadProducts] = useDebounce((page: number) => {
+    void productStore.loadProductos({
+        page,
+        pageSize: productStore.pageSize,
+        searchQuery: searchQuery.value,
+        resetPage: page === 1
+    })
+}, 350)
+
 onMounted(() => {
-    productStore.loadProductos();
-});
+    void productStore.loadProductos({ page: 1, searchQuery: '' })
+})
 
-// ============== Computed & Filtered ==============
-const filteredProducts = () => {
-    if (!searchQuery.value.trim()) {
-        return productStore.products
-    }
-    const query = searchQuery.value.toLowerCase()
-    return productStore.products.filter(p =>
-        p.nombre.toLowerCase().includes(query) ||
-        p.descripcion.toLowerCase().includes(query) ||
-        p.marcas?.nombre.toLowerCase().includes(query)
-    )
-}
+watch(searchQuery, () => {
+    void debouncedLoadProducts(1)
+})
 
-// ============== Methods ==============
 async function deleteProduct(product: Product): Promise<void> {
     const confirmed = await AlertService.confirm(
-        "Eliminar Producto",
+        'Eliminar Producto',
         `¿Está seguro que desea eliminar "${product.nombre}"? Esta acción no se puede deshacer.`
     );
 
@@ -41,26 +40,20 @@ async function deleteProduct(product: Product): Promise<void> {
 
     try {
         await productStore.desactiveProduct(product.id);
-        AlertService.toastSuccess("Producto eliminado correctamente");
+        AlertService.toastSuccess('Producto eliminado correctamente');
     } catch (err) {
-        AlertService.toastError("Error al eliminar el producto");
+        AlertService.toastError('Error al eliminar el producto');
         console.error(err);
     }
 }
 
-/**
- * Abre el modal en modo crear
- */
 function openCreateModal(): void {
     editingProduct.value = null
     isModalOpen.value = true
 }
 
-/**
- * Abre el modal en modo editar
- */
 function openEditModal(product: Product): void {
-    editingProduct.value = product
+    editingProduct.value = product;
     isModalOpen.value = true
 }
 
@@ -69,36 +62,33 @@ function closeModal(): void {
     editingProduct.value = null
 }
 
-/**
- * Maneja el guardar de un producto (crear o actualizar)
- */
 async function handleSaveProduct(productForm: ProductForm): Promise<void> {
     try {
         if (editingProduct.value) {
-            // Modo editar
             await productStore.updateProduct(editingProduct.value.id, productForm)
-            AlertService.toastSuccess("Producto actualizado correctamente");
+            AlertService.toastSuccess('Producto actualizado correctamente');
         } else {
-            // Modo crear
             await productStore.createProduct(productForm)
-            //console.log(productForm);
-            AlertService.toastSuccess("Producto creado correctamente");
+            AlertService.toastSuccess('Producto creado correctamente');
         }
         closeModal()
     } catch (err) {
         AlertService.toastError(
             editingProduct.value
-                ? "Error al actualizar el producto"
-                : "Error al crear el producto"
+                ? 'Error al actualizar el producto'
+                : 'Error al crear el producto'
         );
         console.error(err);
     }
+}
+
+function handlePageChange(page: number): void {
+    void debouncedLoadProducts(page)
 }
 </script>
 
 <template>
     <div class="products-container">
-        <!-- Search Section -->
         <section class="section-search">
             <div class="search-wrapper">
                 <label for="search-input" class="search-label">Buscar productos:</label>
@@ -114,16 +104,15 @@ async function handleSaveProduct(productForm: ProductForm): Promise<void> {
             </div>
         </section>
 
-        <!-- Product Table Section -->
         <section class="section-table card">
             <div class="table-status">
                 <span v-if="productStore.loading" class="loading-text">Cargando productos...</span>
-                <span v-else-if="filteredProducts().length === 0" class="empty-text">
+                <span v-else-if="productStore.products.length === 0" class="empty-text">
                     No hay productos disponibles
                 </span>
             </div>
 
-            <div v-if="!productStore.loading && filteredProducts().length > 0" class="table-responsive">
+            <div v-if="!productStore.loading && productStore.products.length > 0" class="table-responsive">
                 <table>
                     <thead>
                         <tr>
@@ -136,8 +125,10 @@ async function handleSaveProduct(productForm: ProductForm): Promise<void> {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(product, index) in filteredProducts()" :key="product.id">
-                            <td class="text-center">{{ index + 1 }}</td>
+                        <tr v-for="(product, index) in productStore.products" :key="product.id">
+                            <td class="text-center">
+                                {{ ((productStore.currentPage - 1) * productStore.pageSize) + index + 1 }}
+                            </td>
                             <td>{{ product.nombre }}</td>
                             <td class="text-truncate" :title="product.descripcion">
                                 {{ product.descripcion }}
@@ -161,9 +152,12 @@ async function handleSaveProduct(productForm: ProductForm): Promise<void> {
                     </tbody>
                 </table>
             </div>
+
+            <ProductPagination v-if="productStore.totalItems > 0" :current-page="productStore.currentPage"
+                :total-pages="productStore.totalPages" :total-items="productStore.totalItems"
+                :page-size="productStore.pageSize" :is-loading="productStore.loading" @page-change="handlePageChange" />
         </section>
 
-        <!-- Modal Product -->
         <ModalProduct :is-open="isModalOpen" :product="editingProduct" :is-loading="productStore.loading"
             @close="closeModal" @save="handleSaveProduct" />
     </div>
@@ -198,6 +192,7 @@ async function handleSaveProduct(productForm: ProductForm): Promise<void> {
 }
 
 .search-input {
+    width: 100%;
     padding: 0.75rem 1rem;
     background: #0f172a;
     color: #e2e8f0;
@@ -245,7 +240,6 @@ async function handleSaveProduct(productForm: ProductForm): Promise<void> {
     font-weight: bold;
 }
 
-/* Table Styles */
 .section-table {
     border-radius: 8px;
     background: var(--surface, #0f172a);
@@ -258,12 +252,12 @@ async function handleSaveProduct(productForm: ProductForm): Promise<void> {
     color: #8b949e;
 }
 
-.loading-text {
+.loading-text,
+.empty-text {
     display: inline-block;
 }
 
 .empty-text {
-    display: inline-block;
     color: #8b949e;
 }
 
@@ -318,12 +312,12 @@ tbody tr:hover {
     text-overflow: ellipsis;
 }
 
-/* Action Buttons */
 .actions {
     display: flex;
     gap: 0.5rem;
     justify-content: center;
     text-align: center;
+    width: 140px;
 }
 
 .action-btn {
@@ -396,6 +390,12 @@ tbody tr:hover {
     .action-btn {
         width: 32px;
         height: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    .products-container {
+        padding: 0.75rem;
     }
 }
 </style>

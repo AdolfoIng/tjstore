@@ -1,34 +1,83 @@
-import { ProductService } from "@/services/product.service";
+import { ProductService, type ProductPaginationParams } from "@/services/product.service";
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import type { Product, ProductForm } from "@/types/product";
+
+interface ProductLoadOptions extends ProductPaginationParams {
+    resetPage?: boolean
+}
 
 export const useProductStore = defineStore('product', () => {
     const products = ref<Product[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const totalItems = ref(0)
+    const currentPage = ref(1)
+    const pageSize = ref(3)
+    const searchTerm = ref('')
 
-    async function loadProductos() {
+    const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageSize.value)))
+
+    async function loadProductos(options: ProductLoadOptions = {}) {
+        const nextPage = options.resetPage ? 1 : (options.page ?? currentPage.value)
+        const requestedPageSize = options.pageSize ?? pageSize.value
+        const requestedSearchTerm = options.searchQuery ?? searchTerm.value
+
         loading.value = true
         error.value = null
 
         try {
-            products.value = await ProductService.getAllProducts()
+            const result = await ProductService.getProductsPage({
+                page: nextPage,
+                pageSize: requestedPageSize,
+                searchQuery: requestedSearchTerm
+            })
+
+            products.value = result.items
+            totalItems.value = result.totalCount
+            currentPage.value = result.page
+            pageSize.value = result.pageSize
+            searchTerm.value = requestedSearchTerm
+
+            return result
         } catch (err) {
-            error.value = (err as Error)?.message ?? 'Error al cargar Productos ..'
+            error.value = (err as Error)?.message ?? 'Error al cargar productos'
+            throw err
         } finally {
             loading.value = false
         }
     }
 
+    async function changePage(page: number) {
+        if (page < 1) return
+
+        return loadProductos({
+            page,
+            searchQuery: searchTerm.value,
+            pageSize: pageSize.value
+        })
+    }
+
+    async function setSearch(query: string) {
+        return loadProductos({
+            page: 1,
+            searchQuery: query,
+            pageSize: pageSize.value,
+            resetPage: true
+        })
+    }
+
     async function createProduct(product: ProductForm) {
         loading.value = true
         error.value = null
-        console.log('store');
-        console.log(product);
         try {
             const newProduct = await ProductService.createProduct(product)
-            products.value.unshift(newProduct)
+            await loadProductos({
+                page: 1,
+                searchQuery: searchTerm.value,
+                pageSize: pageSize.value,
+                resetPage: true
+            })
             return newProduct
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error creando producto'
@@ -44,10 +93,11 @@ export const useProductStore = defineStore('product', () => {
 
         try {
             const updatedProduct = await ProductService.updateProduct(id, product)
-            const index = products.value.findIndex(p => p.id === id)
-            if (index !== -1) {
-                products.value[index] = updatedProduct
-            }
+            await loadProductos({
+                page: currentPage.value,
+                searchQuery: searchTerm.value,
+                pageSize: pageSize.value
+            })
             return updatedProduct
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error actualizando producto'
@@ -63,7 +113,11 @@ export const useProductStore = defineStore('product', () => {
 
         try {
             await ProductService.deleteProduct(id)
-            products.value = products.value.filter(p => p.id !== id)
+            await loadProductos({
+                page: currentPage.value,
+                searchQuery: searchTerm.value,
+                pageSize: pageSize.value
+            })
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error desactivando producto'
             throw err
@@ -76,7 +130,14 @@ export const useProductStore = defineStore('product', () => {
         products,
         loading,
         error,
+        totalItems,
+        currentPage,
+        pageSize,
+        totalPages,
+        searchTerm,
         loadProductos,
+        changePage,
+        setSearch,
         createProduct,
         updateProduct,
         desactiveProduct

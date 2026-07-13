@@ -1,31 +1,84 @@
 import { supabase } from "@/api/supabase"
 import type { Product, ProductForm } from "@/types/product"
 
+export interface ProductPaginationParams {
+    page?: number
+    pageSize?: number
+    searchQuery?: string
+}
+
+export interface ProductPageResult {
+    items: Product[]
+    totalCount: number
+    page: number
+    pageSize: number
+    totalPages: number
+}
+
+function normalizeSearchQuery(searchQuery?: string): string {
+    return searchQuery?.trim() ?? ''
+}
+
 export const ProductService = {
 
-    async getAllProducts(): Promise<Product[]> {
-        const { data, error } = await supabase.from('productos')
+    async getProductsPage({
+        page = 1,
+        pageSize = 8,
+        searchQuery
+    }: ProductPaginationParams = {}): Promise<ProductPageResult> {
+        const normalizedQuery = normalizeSearchQuery(searchQuery)
+        const from = (page - 1) * pageSize
+        const to = from + pageSize - 1
+
+        let query = supabase.from('productos')
             .select(`
-            id,
-            nombre,
-            descripcion,
-            precio_venta,
-            marca_id,
-            activo,
-            created_at,
-            marcas (
                 id,
-                nombre
-            )
-        `)
+                nombre,
+                descripcion,
+                precio_venta,
+                marca_id,
+                categoria_id,
+                activo,
+                created_at,
+                marcas (
+                    id,
+                    nombre
+                ),
+                categorias (
+                    id,
+                    nombre
+                )
+            `, { count: 'exact' })
             .eq('activo', true)
             .order('created_at', { ascending: false })
 
+        if (normalizedQuery) {
+            const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&')
+            query = query.or(`nombre.ilike.%${escapedQuery}%,descripcion.ilike.%${escapedQuery}%`)
+        }
+
+        const { data, error, count } = await query.range(from, to)
+
         if (error) {
-            console.log(error)
+            console.error(error)
             throw error
         }
-        return (data as unknown as Product[]) ?? []
+
+        const items = (data as unknown as Product[]) ?? []
+        const totalCount = count ?? items.length
+
+        return {
+            items,
+            totalCount,
+            page,
+            pageSize,
+            totalPages: Math.max(1, Math.ceil(totalCount / pageSize))
+        }
+    },
+
+    async getAllProducts(): Promise<Product[]> {
+        const result = await this.getProductsPage({ page: 1, pageSize: 1000 })
+        return result.items
     },
 
     async createProduct(product: ProductForm): Promise<Product> {
@@ -35,7 +88,7 @@ export const ProductService = {
                 nombre: product.nombre,
                 descripcion: product.descripcion,
                 precio_venta: product.precio_venta,
-                categoria_id: '611f3a77-ae4e-496f-8ef2-ae0a0a9a0d45',
+                categoria_id: product.categoria_id,
                 marca_id: product.marca_id,
                 activo: true
             })
