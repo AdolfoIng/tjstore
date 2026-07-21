@@ -6,6 +6,7 @@ import AlertService from '@/services/sweetalert2/alert.service'
 import type { Product, ProductForm } from '@/types/product'
 import type { Brand } from '@/types/brand';
 import type { Categoria } from '@/types/categoria';
+import { ImageStorageService } from '@/services/productos/imageStorage.service'
 
 interface Props {
     isOpen: boolean
@@ -31,12 +32,16 @@ const brandsLoading = ref(false)
 const categorias = ref<Categoria[]>([])
 const categoriasLoading = ref(false)
 
+// ==== Imagen ====
+const imageFile = ref<File | null>(null)
+
 const form = reactive<ProductForm>({
     nombre: '',
     descripcion: '',
     precio_venta: 0,
     categoria_id: null,
-    marca_id: null
+    marca_id: null,
+    imagen_url: null
 })
 
 const errors = reactive({
@@ -44,7 +49,8 @@ const errors = reactive({
     descripcion: '',
     precio_venta: '',
     categoria_id: '',
-    marca_id: ''
+    marca_id: '',
+    imagen_url: ''
 })
 
 // ============ Computed ============
@@ -153,11 +159,33 @@ async function handleSave(): Promise<void> {
 
     try {
         console.log('valido el form..');
-        console.log(form.marca_id);
+        console.log('Saving image ....');
+        let imageUrl = ''
+
+        if (imageFile.value) {
+            imageUrl = await ImageStorageService.uploadProductImage(imageFile.value)
+        }
+
+        if (imageUrl.length > 0) {
+            console.log('Se cargo la imagen');
+            form.imagen_url = imageUrl;
+        }
+
+        console.log(form);
+
         emit('save', { ...form })
     } catch (err) {
         console.error(err)
     }
+}
+
+function onSelectImage(event: Event) {
+    //console.log('image');
+    const input = event.target as HTMLInputElement
+    if (!input.files || input.files.length === 0) return
+
+    //console.log(input.files[0]);
+    imageFile.value = input.files[0]!
 }
 
 function handleClose(): void {
@@ -253,6 +281,13 @@ onMounted(() => {
                         :class="{ 'form-input--error': errors.precio_venta }" placeholder="0.00" :disabled="isLoading"
                         autocomplete="off" step="0.01" min="0" />
                     <p v-if="errors.precio_venta" class="error-message">{{ errors.precio_venta }}</p>
+
+                    <!-- Imagen -->
+
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" @change="onSelectImage"
+                        ref="fileInput" class="file-input" />
+
+
                 </div>
             </div>
 
@@ -435,6 +470,11 @@ onMounted(() => {
     color: #323233;
     margin: 0.25rem 0 0 0;
 }
+
+/* Image */
+
+
+
 
 /* Footer */
 .modal-footer {

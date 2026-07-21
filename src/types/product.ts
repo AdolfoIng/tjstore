@@ -10,6 +10,7 @@ export interface Product {
     marca_id: string
     activo: boolean
     created_at?: string
+    imagen_url: string
     categoria?: Categoria  // Relación con categoria (single object)
     marcas?: Brand  // Relación con marca (single object)
 }
@@ -20,4 +21,5 @@ export interface ProductForm {
     precio_venta: number
     categoria_id: string | null
     marca_id: string | null
+    imagen_url: string | null
 }

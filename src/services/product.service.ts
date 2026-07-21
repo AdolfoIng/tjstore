@@ -40,6 +40,7 @@ export const ProductService = {
                 categoria_id,
                 activo,
                 created_at,
+                imagen_url,
                 marcas (
                     id,
                     nombre
@@ -90,6 +91,7 @@ export const ProductService = {
                 precio_venta: product.precio_venta,
                 categoria_id: product.categoria_id,
                 marca_id: product.marca_id,
+                imagen_url: product.imagen_url,
                 activo: true
             })
             .select(`

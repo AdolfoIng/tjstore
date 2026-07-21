@@ -117,6 +117,7 @@ function handlePageChange(page: number): void {
                     <thead>
                         <tr>
                             <th>N°</th>
+                            <th>Imagen</th>
                             <th>Nombre</th>
                             <th>Descripción</th>
                             <th>Marca</th>
@@ -129,6 +130,7 @@ function handlePageChange(page: number): void {
                             <td class="text-center">
                                 {{ ((productStore.currentPage - 1) * productStore.pageSize) + index + 1 }}
                             </td>
+                            <td><img :src="product.imagen_url" width="50" class="product-image"></td>
                             <td>{{ product.nombre }}</td>
                             <td class="text-truncate" :title="product.descripcion">
                                 {{ product.descripcion }}
@@ -360,6 +362,12 @@ tbody tr:hover {
 
 .card {
     border: 1px solid #30363d;
+}
+
+.product-image {
+    object-fit: cover;
+    border-radius: 4px;
+    /* background: var(--bg-tertiary); */
 }
 
 @media (max-width: 768px) {
