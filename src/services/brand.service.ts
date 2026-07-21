@@ -23,7 +23,7 @@ export const BrandService = {
         return data
     },
 
-    async update(id: number, name: string): Promise<Brand> {
+    async update(id: string, name: string): Promise<Brand> {
         const { data, error } = await supabase
             .from('marcas')
             .update({ nombre: name })
@@ -35,7 +35,7 @@ export const BrandService = {
         return data
     },
 
-    async deleteBrand(id: number): Promise<void> {
+    async deleteBrand(id: string): Promise<void> {
         const { error } = await supabase
             .from('marcas')
             .delete()

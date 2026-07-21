@@ -4,13 +4,16 @@ import { Eye, Pencil, Trash2 } from '@/lib/icons';
 import { useProductStore } from '@/stores/product.store';
 import AlertService from '@/services/sweetalert2/alert.service';
 import ModalProduct from '@/components/products/ModalProduct.vue';
+import ProductStockModal from '@/components/products/ProductStockModal.vue';
 import ProductPagination from '@/components/products/ProductPagination.vue';
 import { useDebounce } from '@/composables/useDebounce';
 import type { Product, ProductForm } from '@/types/product';
 
 const productStore = useProductStore();
 const isModalOpen = ref(false)
+const isStockModalOpen = ref(false)
 const editingProduct = ref<Product | null>(null)
+const selectedStockProduct = ref<Product | null>(null)
 const searchQuery = ref('')
 
 const [debouncedLoadProducts] = useDebounce((page: number) => {
@@ -60,6 +63,16 @@ function openEditModal(product: Product): void {
 function closeModal(): void {
     isModalOpen.value = false
     editingProduct.value = null
+}
+
+function openStockModal(product: Product): void {
+    selectedStockProduct.value = product
+    isStockModalOpen.value = true
+}
+
+function closeStockModal(): void {
+    isStockModalOpen.value = false
+    selectedStockProduct.value = null
 }
 
 async function handleSaveProduct(productForm: ProductForm): Promise<void> {
@@ -138,7 +151,8 @@ function handlePageChange(page: number): void {
                             <td>{{ product.marcas?.nombre ?? 'N/A' }}</td>
                             <td class="text-right">${{ product.precio_venta.toFixed(2) }}</td>
                             <td class="actions">
-                                <button type="button" class="action-btn view-stock" title="Ver Stock">
+                                <button type="button" class="action-btn view-stock" title="Ver Stock"
+                                    @click="openStockModal(product)">
                                     <Eye class="icon" />
                                 </button>
                                 <button type="button" class="action-btn edit" title="Editar"
@@ -162,6 +176,8 @@ function handlePageChange(page: number): void {
 
         <ModalProduct :is-open="isModalOpen" :product="editingProduct" :is-loading="productStore.loading"
             @close="closeModal" @save="handleSaveProduct" />
+
+        <ProductStockModal :is-open="isStockModalOpen" :product="selectedStockProduct" @close="closeStockModal" />
     </div>
 </template>
 

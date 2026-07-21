@@ -10,7 +10,7 @@ interface Props {
 
 interface Emits {
     (e: 'close'): void
-    (e: 'save', brandName: string, brandId?: number): void
+    (e: 'save', brandName: string, brandId?: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {

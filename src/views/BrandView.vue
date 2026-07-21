@@ -54,7 +54,7 @@ function closeModal(): void {
 /**
  * Maneja el guardado: crea o actualiza según el modo
  */
-async function handleSave(brandName: string, brandId?: number): Promise<void> {
+async function handleSave(brandName: string, brandId?: string): Promise<void> {
     if (brandId) {
         // Modo edición
         await brandStore.updateBrand(brandId, brandName)
@@ -68,7 +68,7 @@ async function handleSave(brandName: string, brandId?: number): Promise<void> {
 /**
  * Elimina una marca con confirmación
  */
-function removeBrand(id: number): void {
+function removeBrand(id: string): void {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta marca?')) {
         brandStore.deleteBrand(id)
     }

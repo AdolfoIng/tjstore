@@ -35,7 +35,7 @@ export const useBrandStore = defineStore('brand', () => {
         }
     }
 
-    async function updateBrand(id: number, name: string) {
+    async function updateBrand(id: string, name: string) {
         loading.value = true
         error.value = null
 
@@ -49,7 +49,7 @@ export const useBrandStore = defineStore('brand', () => {
         }
     }
 
-    async function deleteBrand(id: number) {
+    async function deleteBrand(id: string) {
         loading.value = true
         error.value = null
 
