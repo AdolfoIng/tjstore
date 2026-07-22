@@ -1,4 +1,4 @@
-import type { Brand } from './brand';
+import type { Marca } from './marca';
 import type { Categoria } from './categoria';
 
 export interface Product {
@@ -12,7 +12,7 @@ export interface Product {
     created_at?: string
     imagen_url: string
     categoria?: Categoria  // Relación con categoria (single object)
-    marcas?: Brand  // Relación con marca (single object)
+    marcas?: Marca  // Relación con marca (single object)
 }
 
 export interface ProductForm {

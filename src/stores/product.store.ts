@@ -1,4 +1,4 @@
-import { ProductService, type ProductPaginationParams } from "@/services/product.service";
+import { ProductService, type ProductPaginationParams } from "@/services/productos/product.service";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import type { Product, ProductForm } from "@/types/product";

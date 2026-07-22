@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
-import { ProductStockService } from '@/services/product-stock.service'
+import { ProductStockService } from '@/services/productos/product-stock.service'
 import type { Product } from '@/types/product'
 import type { ProductStockRow } from '@/types/product-stock'
 

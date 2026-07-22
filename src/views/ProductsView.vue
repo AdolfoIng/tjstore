@@ -125,6 +125,8 @@ function handlePageChange(page: number): void {
                 </span>
             </div>
 
+            <!-- Tabla Productos -->
+
             <div v-if="!productStore.loading && productStore.products.length > 0" class="table-responsive">
                 <table>
                     <thead>

@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { BrandService } from '@/services/brand.service'
-import type { Brand } from '@/types/brand'
+import { MarcaService } from '@/services/marcas/marca.service'
+import type { Marca } from '@/types/marca'
 
 export const useBrandStore = defineStore('brand', () => {
-    const brands = ref<Brand[]>([])
+    const brands = ref<Marca[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
 
@@ -13,7 +13,7 @@ export const useBrandStore = defineStore('brand', () => {
         error.value = null
 
         try {
-            brands.value = await BrandService.getAll()
+            brands.value = await MarcaService.getAll()
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error loading brands'
         } finally {
@@ -26,7 +26,7 @@ export const useBrandStore = defineStore('brand', () => {
         error.value = null
 
         try {
-            await BrandService.create(name)
+            await MarcaService.create(name)
             await loadBrands()
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error adding brand'
@@ -40,7 +40,7 @@ export const useBrandStore = defineStore('brand', () => {
         error.value = null
 
         try {
-            await BrandService.update(id, name)
+            await MarcaService.update(id, name)
             await loadBrands()
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error updating brand'
@@ -54,7 +54,7 @@ export const useBrandStore = defineStore('brand', () => {
         error.value = null
 
         try {
-            await BrandService.deleteBrand(id)
+            await MarcaService.deleteBrand(id)
             await loadBrands()
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error deleting brand'
@@ -68,7 +68,7 @@ export const useBrandStore = defineStore('brand', () => {
         error.value = null
 
         try {
-            brands.value = await BrandService.searchBrand(query)
+            brands.value = await MarcaService.searchBrand(query)
         } catch (err) {
             error.value = (err as Error)?.message ?? 'Error searching brands'
         } finally {

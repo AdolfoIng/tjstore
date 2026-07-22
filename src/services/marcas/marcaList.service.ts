@@ -1,8 +1,8 @@
 import { supabase } from '@/api/supabase'
-import type { Brand } from '@/types/brand'
+import type { Marca } from '@/types/marca'
 
-export const BrandListService = {
-    async getAll(): Promise<Brand[]> {
+export const MarcaListService = {
+    async getAll(): Promise<Marca[]> {
         const { data, error } = await supabase
             .from('marcas')
             .select('id, nombre')

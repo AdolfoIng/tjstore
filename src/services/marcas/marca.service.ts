@@ -1,8 +1,8 @@
 import { supabase } from '@/api/supabase'
-import type { Brand } from '@/types/brand'
+import type { Marca } from '@/types/marca'
 
-export const BrandService = {
-    async getAll(): Promise<Brand[]> {
+export const MarcaService = {
+    async getAll(): Promise<Marca[]> {
         const { data, error } = await supabase
             .from('marcas')
             .select('id, nombre, created_at')
@@ -12,7 +12,7 @@ export const BrandService = {
         return data ?? []
     },
 
-    async create(name: string): Promise<Brand> {
+    async create(name: string): Promise<Marca> {
         const { data, error } = await supabase
             .from('marcas')
             .insert({ nombre: name })
@@ -23,7 +23,7 @@ export const BrandService = {
         return data
     },
 
-    async update(id: string, name: string): Promise<Brand> {
+    async update(id: string, name: string): Promise<Marca> {
         const { data, error } = await supabase
             .from('marcas')
             .update({ nombre: name })
@@ -45,7 +45,7 @@ export const BrandService = {
     },
 
     // Search Brands
-    async searchBrand(query: string): Promise<Brand[]> {
+    async searchBrand(query: string): Promise<Marca[]> {
         const { data, error } = await supabase
             .from('marcas')
             .select('id, nombre, created_at')

@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref, computed, watch } from 'vue'
-import { BrandListService } from '@/services/brandList.service'
-import { CategoryListService } from '@/services/category.service'
+import { MarcaListService } from '@/services/marcas/marcaList.service'
+import { CategoryListService } from '@/services/categorias/category.service'
 import AlertService from '@/services/sweetalert2/alert.service'
 import type { Product, ProductForm } from '@/types/product'
-import type { Brand } from '@/types/brand';
+import type { Marca } from '@/types/marca';
 import type { Categoria } from '@/types/categoria';
 import { ImageStorageService } from '@/services/productos/imageStorage.service'
 
@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // ============ State ============
-const brands = ref<Brand[]>([])
+const brands = ref<Marca[]>([])
 const brandsLoading = ref(false)
 
 const categorias = ref<Categoria[]>([])
@@ -75,7 +75,7 @@ watch(() => props.isOpen, (newVal) => {
 async function loadBrands(): Promise<void> {
     brandsLoading.value = true
     try {
-        brands.value = await BrandListService.getAll()
+        brands.value = await MarcaListService.getAll()
     } catch (err) {
         AlertService.toastError('Error al cargar marcas')
         console.error(err)
