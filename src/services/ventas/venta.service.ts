@@ -34,30 +34,29 @@ export const VentaService = {
 
         const ventaId = ventaData.id as string
 
-        const detalleRows = safeItems.map((item) => ({
-            venta_id: ventaId,
-            producto_variante_id: item.producto_variante_id,
-            cantidad: item.cantidad,
-            precio_unitario: item.precio_unitario,
-            subtotal: item.subtotal
-        }))
-
-        const { data: ventaDetalleData, error: detalleError } = await supabase
-            .from('venta_detalle')
-            .insert(detalleRows)
-
-        if (detalleError) {
-            console.error(detalleError)
-            throw detalleError
-        }
-
-        console.log('Detalle de Venta : ');
-        console.log(ventaDetalleData);
-
         for (const item of safeItems) {
             const quantity = normalizeNumber(item.cantidad)
+            const unitPrice = normalizeNumber(item.precio_unitario)
+            const subtotal = normalizeNumber(item.subtotal)
 
-            console.log('cantidad = ', quantity);
+            const { data: detalleData, error: detalleError } = await supabase
+                .from('venta_detalle')
+                .insert({
+                    venta_id: ventaId,
+                    producto_variante_id: item.producto_variante_id,
+                    cantidad: quantity,
+                    precio_unitario: unitPrice,
+                    subtotal
+                })
+                .select('id')
+                .single()
+
+            if (detalleError || !detalleData) {
+                console.error(detalleError)
+                throw detalleError ?? new Error('No se pudo registrar el detalle de la venta')
+            }
+
+            const ventaDetalleId = detalleData.id as string
 
             const { data: variantData, error: stockReadError } = await supabase
                 .from('producto_variantes')
@@ -94,6 +93,7 @@ export const VentaService = {
                 .from('movimientos_stock')
                 .insert({
                     producto_variante_id: item.producto_variante_id,
+                    venta_detalle_id: ventaDetalleId,
                     tipo_movimiento: 'VENTA DE PRODUCTO',
                     cantidad: quantity,
                     stock_anterior: currentStock,

@@ -8,9 +8,9 @@
             <h3>Inventory</h3>
         </div>
         <ul>
-            <li><router-link to="/">Home</router-link></li>
-            <li><router-link to="/products">Productos</router-link></li>
-            <li><router-link to="/sales">Ventas</router-link></li>
+            <li><router-link to="/dashboard">Home</router-link></li>
+            <li><router-link to="/dashboard/products">Productos</router-link></li>
+            <li><router-link to="/dashboard/sales">Ventas</router-link></li>
         </ul>
     </nav>
 </template>

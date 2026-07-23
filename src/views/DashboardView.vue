@@ -1,44 +1,40 @@
 <script lang="ts" setup>
-import Sidebar from '@/components/dashboard/Sidebar.vue';
-import Navbar from '@/components/dashboard/Navbar.vue';
-import { routeLocationKey } from 'vue-router';
-import type router from '@/router';
+import Sidebar from '@/components/dashboard/Sidebar.vue'
+import Navbar from '@/components/dashboard/Navbar.vue'
 </script>
 
 <template>
     <div class="dashboard-container">
-
-        <div class="sidebar">
+        <aside class="sidebar">
             <Sidebar />
-        </div>
+        </aside>
+
         <div class="page-content">
-            <div class="navbar">
+            <header class="navbar">
                 <Navbar />
-            </div>
+            </header>
 
-            <div class="main-content">
+            <main class="main-content">
                 <router-view :key="$route.fullPath" />
-            </div>
-
+            </main>
         </div>
-
     </div>
 </template>
 
 <style scoped>
 .dashboard-container {
     display: flex;
-    height: 100vh;
-    background-color: #7c7d7e;
-    color: #1b1b1c;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #020617, #0f172a);
+    color: #e2e8f0;
 }
 
 .sidebar {
-    width: 180px;
-    background-color: #323232;
+    width: 220px;
+    background: #0f172a;
     color: #ffffff;
     padding: 1rem;
+    border-right: 1px solid rgba(148, 163, 184, 0.15);
 }
 
 .page-content {
@@ -48,16 +44,24 @@ import type router from '@/router';
 }
 
 .navbar {
-    background-color: #3d2e2e;
+    background: rgba(15, 23, 42, 0.82);
     color: #ffffff;
-    padding: 1rem;
-    height: 60px;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
 }
 
 .main-content {
     flex: 1;
-    /* background-color: #626161; */
-    /* color: #1b1b1c; */
     padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+    }
 }
 </style>

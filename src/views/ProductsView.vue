@@ -8,6 +8,8 @@ import ProductStockModal from '@/components/products/ProductStockModal.vue';
 import ProductPagination from '@/components/products/ProductPagination.vue';
 import { useDebounce } from '@/composables/useDebounce';
 import type { Product, ProductForm } from '@/types/product';
+import { roles } from '@/types/roles';
+import { useAuthStore } from '@/stores/auth/auth.store';
 
 const productStore = useProductStore();
 const isModalOpen = ref(false)
@@ -15,6 +17,9 @@ const isStockModalOpen = ref(false)
 const editingProduct = ref<Product | null>(null)
 const selectedStockProduct = ref<Product | null>(null)
 const searchQuery = ref('')
+
+// ver Rol de usuario
+const authStore = useAuthStore()
 
 const [debouncedLoadProducts] = useDebounce((page: number) => {
     void productStore.loadProductos({
@@ -157,12 +162,12 @@ function handlePageChange(page: number): void {
                                     @click="openStockModal(product)">
                                     <Eye class="icon" />
                                 </button>
-                                <button type="button" class="action-btn edit" title="Editar"
-                                    @click="openEditModal(product)">
+                                <button v-if="authStore.role === roles.admin" type="button" class="action-btn edit"
+                                    title="Editar" @click="openEditModal(product)">
                                     <Pencil class="icon" />
                                 </button>
-                                <button type="button" class="action-btn delete" title="Eliminar"
-                                    @click="deleteProduct(product)">
+                                <button v-if="authStore.role === roles.admin" type="button" class="action-btn delete"
+                                    title="Eliminar" @click="deleteProduct(product)">
                                     <Trash2 class="icon" />
                                 </button>
                             </td>
