@@ -56,8 +56,8 @@ import type router from '@/router';
 
 .main-content {
     flex: 1;
-    background-color: #626161;
-    color: #1b1b1c;
+    /* background-color: #626161; */
+    /* color: #1b1b1c; */
     padding: 1rem;
 }
 </style>
