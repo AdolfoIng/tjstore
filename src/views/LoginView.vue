@@ -2,14 +2,14 @@
     <div class="login-shell">
         <div class="login-card">
             <div class="brand-block">
-                <p class="eyebrow">Panel administrativo</p>
-                <h1>Acceso seguro</h1>
-                <p class="subtitle">Ingresa tu email y contraseña para entrar al Sistema.</p>
+                <p class="eyebrow">Acceso al Sistema</p>
+                <h1>System Store TJ</h1>
+                <p class="subtitle">Ingresa tu correo y contraseña.</p>
             </div>
 
             <form class="login-form" @submit.prevent="handleLogin">
                 <label class="field">
-                    <span>Email</span>
+                    <span>Correo</span>
                     <input v-model="email" type="email" placeholder="usuario@empresa.com" autocomplete="email"
                         required />
                 </label>

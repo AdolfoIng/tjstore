@@ -115,7 +115,7 @@ function handlePageChange(page: number): void {
             </div>
 
             <div class="actions-bar">
-                <button class="btn btn-primary" @click="openCreateModal">
+                <button v-if="authStore.role === roles.admin" class="btn btn-primary" @click="openCreateModal">
                     <span class="btn-icon">+</span>
                     <span class="btn-text">Agregar Producto</span>
                 </button>

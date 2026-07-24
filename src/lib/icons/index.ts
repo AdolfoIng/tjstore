@@ -12,4 +12,7 @@ export { Trash } from '@lucide/vue';
 export { Plus } from '@lucide/vue';
 export { Eye } from '@lucide/vue';
 export { Boxes } from '@lucide/vue';
+export { ChartArea } from '@lucide/vue';
+export { DollarSign } from '@lucide/vue';
+export { Badge } from '@lucide/vue';
 //
