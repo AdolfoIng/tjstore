@@ -41,7 +41,12 @@ const routes = [
         component: VentasView,
       }
     ]
-  }
+  },
+  // 👇 Siempre debe ir al final
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/',
+  },
 ]
 
 const router = createRouter({

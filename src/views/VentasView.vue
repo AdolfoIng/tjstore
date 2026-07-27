@@ -6,11 +6,16 @@ import AlertService from '@/services/sweetalert2/alert.service'
 import ProductPagination from '@/components/products/ProductPagination.vue'
 import { useDebounce } from '@/composables/useDebounce'
 import type { SaleCartItem, SaleCatalogProduct, SaleCreatePayload, SaleVariantOption } from '@/types/venta'
+import { useAuthStore } from '@/stores/auth/auth.store'
+
 
 const saleStore = useSaleStore()
+// Usuario autenticado
+const authStore = useAuthStore()
 const searchQuery = ref('')
+const usuario_id = ref('')
 const customerForm = reactive({
-    usuario_id: 'd62d8171-0cd2-41c1-a551-e1847bc9fc6e',
+    //usuario_id: '',
     nombre_cliente: '',
     metodo_pago: 'EFECTIVO',
     observaciones: ''
@@ -77,8 +82,15 @@ async function handleSaveSale(): Promise<void> {
         return
     }
 
+    if (!authStore.isAuthenticated) {
+        AlertService.toastError('Usuario no autenticado')
+        return
+    }
+
+    usuario_id.value = authStore.user?.id ?? '';
+
     const payload: SaleCreatePayload = {
-        usuario_id: customerForm.usuario_id,
+        usuario_id: usuario_id.value,
         nombre_cliente: customerForm.nombre_cliente.trim(),
         metodo_pago: customerForm.metodo_pago,
         total: Number(total.value),
@@ -335,15 +347,25 @@ function handlePageChange(page: number): void {
 }
 
 .product-card__media {
-    height: 150px;
+    margin-top: 0.5rem;
+    height: 180px;
     background: #111827;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .product-card__media img,
 .product-card__placeholder {
-    width: 100%;
-    height: 100%;
+    max-width: 80%;
+    max-height: 100%;
     object-fit: cover;
+    border-radius: 16px;
+}
+
+.product-card__media img {
+    width: auto;
+    height: auto;
 }
 
 .product-card__placeholder {

@@ -147,29 +147,36 @@ function handlePageChange(page: number): void {
                     </thead>
                     <tbody>
                         <tr v-for="(product, index) in productStore.products" :key="product.id">
-                            <td class="text-center">
+                            <td class="text-center" data-label="N°">
                                 {{ ((productStore.currentPage - 1) * productStore.pageSize) + index + 1 }}
                             </td>
-                            <td><img :src="product.imagen_url" width="50" class="product-image"></td>
-                            <td>{{ product.nombre }}</td>
-                            <td class="text-truncate" :title="product.descripcion">
+                            <td class="image-cell" data-label="">
+                                <img :src="product.imagen_url" width="50" class="product-image">
+                            </td>
+                            <td data-label="Nombre">{{ product.nombre }}</td>
+                            <td class="text-truncate" :title="product.descripcion" data-label="Descripción">
                                 {{ product.descripcion }}
                             </td>
-                            <td>{{ product.marcas?.nombre ?? 'N/A' }}</td>
-                            <td class="text-right">${{ product.precio_venta.toFixed(2) }}</td>
-                            <td class="actions">
-                                <button type="button" class="action-btn view-stock" title="Ver Stock"
-                                    @click="openStockModal(product)">
-                                    <Eye class="icon" />
-                                </button>
-                                <button v-if="authStore.role === roles.admin" type="button" class="action-btn edit"
-                                    title="Editar" @click="openEditModal(product)">
-                                    <Pencil class="icon" />
-                                </button>
-                                <button v-if="authStore.role === roles.admin" type="button" class="action-btn delete"
-                                    title="Eliminar" @click="deleteProduct(product)">
-                                    <Trash2 class="icon" />
-                                </button>
+                            <td data-label="Marca">{{ product.marcas?.nombre ?? 'N/A' }}</td>
+                            <td class="text-right" data-label="Precio">${{ product.precio_venta.toFixed(2) }}</td>
+                            <td class="actions" data-label="Acciones">
+                                <div class="botones-actions">
+
+                                    <button type="button" class="action-btn view-stock" title="Ver Stock"
+                                        @click="openStockModal(product)">
+                                        <Eye class="icon" />
+                                    </button>
+                                    <button v-if="authStore.role === roles.admin" type="button" class="action-btn edit"
+                                        title="Editar" @click="openEditModal(product)">
+                                        <Pencil class="icon" />
+                                    </button>
+
+                                    <button v-if="authStore.role === roles.admin" type="button"
+                                        class="action-btn delete" title="Eliminar" @click="deleteProduct(product)">
+                                        <Trash2 class="icon" />
+                                    </button>
+
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -198,6 +205,14 @@ function handlePageChange(page: number): void {
 
 .section-search {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.botones-actions {
+    display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
@@ -287,84 +302,107 @@ function handlePageChange(page: number): void {
 }
 
 .table-responsive {
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--surface);
+    background: transparent;
 }
 
 thead {
-    background: #21262d;
-    position: sticky;
-    top: 0;
+    display: none;
 }
 
-th {
-    padding: 1rem;
-    color: #8b949e;
-    font-weight: 600;
-    text-align: left;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+tbody tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #1f2937;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #0b1220;
 }
 
 td {
-    padding: 1rem;
-    border-bottom: 1px solid #30363d;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #17253a;
     color: #c9d1d9;
 }
 
-tbody tr:hover {
-    background: #0d1219;
+td:last-child {
+    border-bottom: none;
 }
 
-.text-center {
-    text-align: center;
-}
-
-.text-right {
-    text-align: right;
+td::before {
+    content: attr(data-label);
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .text-truncate {
-    max-width: 200px;
-    white-space: nowrap;
+    max-width: 100%;
+    white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
-    justify-content: center;
-    text-align: center;
-    width: 140px;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.actions::before {
+    content: attr(data-label);
+    display: block;
+    width: 100%;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 0.75rem;
     border: none;
-    background: transparent;
-    color: #8b949e;
+    background: #111827;
+    color: #c9d1d9;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 12px;
     transition: all 0.2s ease;
 }
 
 .action-btn:hover {
-    background: #30363d;
+    background: #1f2a3a;
+}
+
+.action-btn.view-stock {
+    background: #111f3d;
+    color: #7dd3fc;
+    border: 1px solid rgba(125, 211, 252, 0.25);
 }
 
 .action-btn.view-stock:hover {
-    color: #3b82f6;
+    background: #12305a;
+    color: #93c5fd;
 }
 
 .action-btn.edit:hover {
@@ -387,10 +425,70 @@ tbody tr:hover {
     border: 1px solid #30363d;
 }
 
+.image-cell {
+    min-height: 110px;
+    justify-content: center;
+}
+
 .product-image {
+    width: 100%;
+    max-width: 84px;
+    height: 84px;
     object-fit: cover;
-    border-radius: 4px;
-    /* background: var(--bg-tertiary); */
+    border-radius: 10px;
+}
+
+@media (min-width: 768px) {
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tbody tr {
+        display: table-row;
+        margin: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    td {
+        display: table-cell;
+        padding: 1rem;
+        border-bottom: 1px solid #30363d;
+        grid-template-columns: none;
+    }
+
+    td::before,
+    .actions::before {
+        display: none;
+    }
+
+    .actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        width: 140px;
+        white-space: nowrap;
+    }
+
+    .action-btn {
+        min-width: 36px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border-radius: 6px;
+    }
+
+    .product-image {
+        width: 65px;
+        height: 65px;
+        border-radius: 4px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -411,22 +509,25 @@ tbody tr:hover {
         width: 100%;
         justify-content: center;
     }
-
-    th,
-    td {
-        padding: 0.75rem 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    .action-btn {
-        width: 32px;
-        height: 32px;
-    }
 }
 
 @media (max-width: 640px) {
     .products-container {
         padding: 0.75rem;
+    }
+
+    .image-cell {
+        min-height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .product-image {
+        width: 109px;
+        height: 109px;
+        max-width: none;
+        border-radius: 4px;
     }
 }
 </style>

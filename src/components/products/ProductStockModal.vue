@@ -19,6 +19,26 @@ const emit = defineEmits<Emits>()
 const stockRows = ref<ProductStockRow[]>([])
 const isLoading = ref(false)
 
+function getSizeSortValue(sizeName: string): number {
+    const normalized = sizeName.trim().toUpperCase().replace(/\s+/g, '')
+
+    const directOrder = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']
+    const directIndex = directOrder.indexOf(normalized)
+    if (directIndex >= 0) return directIndex + 1
+
+    if (normalized === 'XXL' || normalized === '2XL') return 5
+    if (normalized === 'XXXL' || normalized === '3XL') return 6
+    if (normalized === 'XXXXL' || normalized === '4XL') return 7
+    if (normalized === 'XXXXXL' || normalized === '5XL') return 8
+
+    const numericMatch = normalized.match(/^(\d+)XL$/)
+    if (numericMatch) {
+        return 4 + Number(numericMatch[1])
+    }
+
+    return 1000
+}
+
 const sizeColumns = computed(() => {
     const sizes = new Map<string, { id: string; nombre: string }>()
 
@@ -31,7 +51,16 @@ const sizeColumns = computed(() => {
         }
     })
 
-    return Array.from(sizes.values())
+    return Array.from(sizes.values()).sort((a, b) => {
+        const aValue = getSizeSortValue(a.nombre)
+        const bValue = getSizeSortValue(b.nombre)
+
+        if (aValue !== bValue) {
+            return aValue - bValue
+        }
+
+        return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    })
 })
 
 const colorRows = computed(() => {
@@ -108,11 +137,18 @@ function handleClose(): void {
     <div v-if="isOpen" class="modal-overlay" @click.self="handleClose">
         <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="stock-modal-title">
             <div class="modal-header">
-                <div>
-                    <p class="modal-eyebrow">Inventario</p>
-                    <h2 id="stock-modal-title" class="modal-title">
-                        Stock de {{ props.product?.nombre ?? 'producto' }}
-                    </h2>
+                <div class="header-main">
+                    <div v-if="props.product?.imagen_url" class="product-image-preview-wrap">
+                        <img :src="props.product.imagen_url" :alt="`Imagen de ${props.product?.nombre ?? 'producto'}`"
+                            class="product-image-preview" />
+                    </div>
+
+                    <div>
+                        <p class="modal-eyebrow">Inventario</p>
+                        <h2 id="stock-modal-title" class="modal-title">
+                            Stock de {{ props.product?.nombre ?? 'producto' }}
+                        </h2>
+                    </div>
                 </div>
 
                 <button type="button" class="close-btn" aria-label="Cerrar modal" @click="handleClose">
@@ -122,12 +158,8 @@ function handleClose(): void {
 
             <div class="modal-body">
                 <div class="summary-grid" aria-label="Resumen de stock">
-                    <article class="summary-card">
-                        <span class="summary-label">Variantes</span>
-                        <strong class="summary-value">{{ totalVariants }}</strong>
-                    </article>
-                    <article class="summary-card">
-                        <span class="summary-label">Unidades</span>
+                    <article class="summary-card summary-card--full">
+                        <span class="summary-label">Total Unidades</span>
                         <strong class="summary-value">{{ totalStock }}</strong>
                     </article>
                 </div>
@@ -148,14 +180,15 @@ function handleClose(): void {
                         </thead>
                         <tbody>
                             <tr v-for="colorRow in colorRows" :key="colorRow.id">
-                                <td class="sticky-col">
+                                <td class="sticky-col" data-label="Color">
                                     <div class="color-cell">
                                         <span v-if="colorRow.codigo_hex" class="color-dot"
                                             :style="{ backgroundColor: colorRow.codigo_hex }" />
                                         <span>{{ colorRow.nombre }}</span>
                                     </div>
                                 </td>
-                                <td v-for="size in sizeColumns" :key="`${colorRow.id}-${size.id}`" class="stock-cell">
+                                <td v-for="size in sizeColumns" :key="`${colorRow.id}-${size.id}`" class="stock-cell"
+                                    :data-label="size.nombre">
                                     {{ colorRow.stockBySize[size.id] ?? 0 }}
                                 </td>
                             </tr>
@@ -199,6 +232,31 @@ function handleClose(): void {
     border-bottom: 1px solid #243041;
 }
 
+.header-main {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    min-width: 0;
+}
+
+.product-image-preview-wrap {
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #243041;
+    background: #111827;
+    display: grid;
+    place-items: center;
+}
+
+.product-image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .modal-eyebrow {
     margin: 0 0 0.2rem;
     font-size: 0.72rem;
@@ -239,6 +297,10 @@ function handleClose(): void {
     border: 1px solid #263245;
     border-radius: 14px;
     padding: 0.9rem 1rem;
+}
+
+.summary-card--full {
+    grid-column: 1 / -1;
 }
 
 .summary-label {
@@ -336,12 +398,93 @@ function handleClose(): void {
         padding-right: 0.9rem;
     }
 
+    .header-main {
+        align-items: center;
+    }
+
+    .product-image-preview-wrap {
+        width: 56px;
+        height: 56px;
+    }
+
     .summary-grid {
         grid-template-columns: 1fr;
     }
 
     .modal-title {
         font-size: 1rem;
+    }
+
+    .table-wrap {
+        overflow-x: visible;
+        border: none;
+    }
+
+    .stock-table {
+        display: block;
+        min-width: 0;
+        border-collapse: separate;
+        border-spacing: 0 0.7rem;
+    }
+
+    .stock-table thead {
+        display: none;
+    }
+
+    .stock-table tbody,
+    .stock-table tr,
+    .stock-table th,
+    .stock-table td {
+        display: block;
+    }
+
+    .stock-table tr {
+        margin-bottom: 0.7rem;
+        border: 1px solid #243041;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #0b1220;
+    }
+
+    .stock-table th,
+    .stock-table td {
+        padding: 0.8rem 0.9rem;
+        border: none;
+        text-align: left;
+        background: transparent;
+    }
+
+    .stock-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        border-bottom: 1px solid #1f2b3e;
+    }
+
+    .stock-table td:last-child {
+        border-bottom: none;
+    }
+
+    .stock-table td::before {
+        content: attr(data-label);
+        color: #94a3b8;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .sticky-col {
+        position: static;
+        left: auto;
+        background: transparent;
+    }
+
+    .stock-cell {
+        justify-content: flex-end;
+        font-weight: 700;
     }
 }
 </style>

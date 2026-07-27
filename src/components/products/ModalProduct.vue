@@ -53,6 +53,35 @@ const errors = reactive({
     imagen_url: ''
 })
 
+const imagePreviewUrl = ref<string | null>(null)
+let currentImageObjectUrl: string | null = null
+
+watch(
+    [() => imageFile.value, () => props.product],
+    () => {
+        if (currentImageObjectUrl) {
+            URL.revokeObjectURL(currentImageObjectUrl)
+            currentImageObjectUrl = null
+        }
+
+        if (imageFile.value) {
+            currentImageObjectUrl = URL.createObjectURL(imageFile.value)
+            imagePreviewUrl.value = currentImageObjectUrl
+        } else {
+            imagePreviewUrl.value = props.product?.imagen_url ?? null
+        }
+    },
+    { immediate: true }
+)
+
+function clearImagePreview(): void {
+    if (currentImageObjectUrl) {
+        URL.revokeObjectURL(currentImageObjectUrl)
+        currentImageObjectUrl = null
+    }
+    imagePreviewUrl.value = null
+}
+
 // ============ Computed ============
 const isEditMode = computed(() => !!props.product)
 const modalTitle = computed(() => isEditMode.value ? 'Editar Producto' : 'Crear Nuevo Producto')
@@ -111,6 +140,7 @@ function resetForm(): void {
     form.categoria_id = null
     form.marca_id = null
     clearErrors()
+    clearImagePreview()
 }
 
 function clearErrors(): void {
@@ -287,6 +317,15 @@ onMounted(() => {
                     <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" @change="onSelectImage"
                         ref="fileInput" class="file-input" />
 
+                    <div class="image-preview-section">
+                        <label class="form-label">Previsualización de Imagen</label>
+                        <div v-if="imagePreviewUrl" class="image-preview-container">
+                            <img :src="imagePreviewUrl" alt="Previsualización de producto" class="image-preview" />
+                        </div>
+                        <div v-else class="image-preview-empty">
+                            Selecciona una imagen para previsualizarla
+                        </div>
+                    </div>
 
                 </div>
             </div>
@@ -344,9 +383,9 @@ onMounted(() => {
 .modal {
     width: 100%;
     max-width: 500px;
-    background: rgb(118, 118, 120);
+    background: #0f172a;
     border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.45);
     overflow: hidden;
     animation: slideUp 0.3s ease-out;
 }
@@ -357,14 +396,14 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid #1f2937;
 }
 
 .modal-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: #38393a;
+    color: #e2e8f0;
 }
 
 .close-btn {
@@ -375,7 +414,7 @@ onMounted(() => {
     height: 32px;
     border: none;
     background: transparent;
-    color: #2f2f30;
+    color: #e2e8f0;
     font-size: 1.25rem;
     cursor: pointer;
     border-radius: 6px;
@@ -407,21 +446,21 @@ onMounted(() => {
 .form-label {
     font-size: 0.95rem;
     font-weight: 500;
-    color: #353636;
+    color: #e2e8f0;
     display: flex;
     align-items: center;
     gap: 0.25rem;
 }
 
 .required {
-    color: #ef4444;
+    color: #f87171;
 }
 
 .form-input {
     padding: 0.75rem;
-    background: #0f172a;
+    background: #111827;
     color: #e2e8f0;
-    border: 1px solid #334155;
+    border: 1px solid #475569;
     border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
@@ -441,7 +480,7 @@ onMounted(() => {
 }
 
 .form-input--error {
-    border-color: #ef4444 !important;
+    border-color: #f87171 !important;
 }
 
 .form-textarea {
@@ -452,11 +491,10 @@ onMounted(() => {
 .form-select {
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e2e8f0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
+    background: #111827 url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e2e8f0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") no-repeat right 0.75rem center;
     background-size: 16px 12px;
     padding-right: 2.5rem;
+    color: #e2e8f0;
 }
 
 .error-message {
@@ -467,14 +505,42 @@ onMounted(() => {
 
 .char-count {
     font-size: 0.75rem;
-    color: #323233;
+    color: #94a3b8;
     margin: 0.25rem 0 0 0;
 }
 
-/* Image */
+.image-preview-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
 
+.image-preview-container {
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: #111827;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+}
 
+.image-preview {
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 10px;
+    object-fit: contain;
+}
 
+.image-preview-empty {
+    color: #94a3b8;
+    padding: 1rem;
+    border: 1px dashed #334155;
+    border-radius: 12px;
+    background: #0f172a;
+    text-align: center;
+}
 
 /* Footer */
 .modal-footer {
@@ -482,8 +548,8 @@ onMounted(() => {
     justify-content: flex-end;
     gap: 0.75rem;
     padding: 1.5rem;
-    border-top: 1px solid #334155;
-    background: rgba(15, 23, 42, 0.5);
+    border-top: 1px solid #1f2937;
+    background: rgba(15, 23, 42, 0.95);
 }
 
 /* Buttons */
@@ -523,15 +589,15 @@ onMounted(() => {
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background: #64748b;
+    background: #475569;
 }
 
 .loading-spinner {
     display: inline-block;
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
+    border: 2px solid rgba(226, 232, 240, 0.25);
+    border-top-color: #e2e8f0;
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
 }
